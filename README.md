@@ -4,7 +4,7 @@ Node.js Express middleware that uses your Mongoose schema to generate SCRUD API 
 
 ## Implementation
 
-Before you begin, be sure [MongoDB is installed](http://docs.mongodb.org/manual/installation/) and `mongod` is running. 
+Before you begin, be sure [MongoDB is installed](http://docs.mongodb.org/manual/installation/) and `mongod` is running.
 
 Install meanify as a dependency and add it to your `package.json` file.
 
@@ -44,7 +44,7 @@ require('./models');
 var mongoose = require('mongoose');
 mongoose.connect('mongodb://localhost/meanify');
 
-var meanify = require('./meanify')({
+var meanify = require('meanify')({
 	path: '/api',
 	pluralize: true
 });
@@ -89,7 +89,7 @@ app.put('/api/posts/:id', meanify.posts.update); // Support PUT instead of POST.
 
 ## Options
 
-meanify expects options to be passed in on require of the module as seen below. This builds a express middleware router object, which is accessed by invoking the returned function.
+meanify expects options to be passed in on require of the module as seen below. This builds an Express middleware router object, which is accessed by invoking the returned function.
 
 ```
 var meanify = require('meanify')({
@@ -114,7 +114,7 @@ Array of models to exclude from middleware generation. Default: `undefined`
 Prevents Meanify from lowercasing generated route name. Default: `true`
 
 ### pluralize
-Pluralizes the model name when used in the route, i.e. "user" becomes "users". Default: `false` 
+Pluralizes the model name when used in the route, i.e. "user" becomes "users". Default: `false`
 
 ### caseSensitive
 Enable case sensitivity, treating "/Foo" and "/foo" as different routes. Default: `true`
@@ -136,7 +136,7 @@ For each model, five endpoints are created that handle resource search, create, 
 ```
 GET /{path}/{model}?{fields}{options}
 ```
-The search route returns an array of resources that match the fields and values provided in the query parameters.  
+The search route returns an array of resources that match the fields and values provided in the query parameters.
 
 For example:
 
@@ -145,7 +145,7 @@ GET /api/posts?author=544bbbceecd047be03d0e0f7&__limit=1
 ```
 If no query parameters are present, it returns the entire data set.  No results will be an empty array (`[]`).
 
-Options are passed in as query parameters in the format of `&__{option}={value}` in the query string, and unlock the power of MongoDB's `find()` API. 
+Options are passed in as query parameters in the format of `&__{option}={value}` in the query string, and unlock the power of MongoDB's `find()` API.
 
 Option   | Description
 -------- | -------------
@@ -160,7 +160,7 @@ near     | Performs a geospatial query on given coordinates and an optional rang
 ```
 POST /{path}/{model}
 ```
-Posting (or putting, if enabled) to the create route validates the incoming data and creates a new resource in the collection. Upon validation failure, a `400` error with details will be returned to the client. On success, a status code of `201` will be issued and the new resource will be returned. 
+Posting (or putting, if enabled) to the create route validates the incoming data and creates a new resource in the collection. Upon validation failure, a `400` error with details will be returned to the client. On success, a status code of `201` will be issued and the new resource will be returned.
 
 ### Read
 ```
@@ -188,6 +188,9 @@ Issuing a delete request to this route will result in the deletion of the resour
 * Unit testing.
 
 ## Changelog
+
+### 0.1.1 | 10/28/2014
+* Basic example of a service using meanify.
 
 ### 0.1.0 | 10/28/2014
 * Alpha release ready for publish to npm and testing.

@@ -1,0 +1,19 @@
+{
+  "name": "meanify-example",
+  "version": "1.0.0",
+  "description": "Example of a basic Meanify implementation.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": [
+    "meanify"
+  ],
+  "author": "Dave Artz <dave@artzstudio.com> (http://artzstudio.com/)",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.10.0",
+    "meanify": "^0.1.0",
+    "mongoose": "^3.8.18"
+  }
+}
