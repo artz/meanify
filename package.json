@@ -1,0 +1,36 @@
+{
+  "name": "meanify",
+  "version": "0.1.0",
+  "description": "Node.js Express middleware that uses your Mongoose schema to generate SCRUD API routes compatible with AngularJS and ngResource.",
+  "main": "meanify.js",
+  "dependencies": {
+    "debug": "^2.1.0",
+    "pluralize": "^1.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/artzstudio/meanify"
+  },
+  "keywords": [
+    "mean",
+    "rest",
+    "angular",
+    "express",
+    "middleware",
+    "api",
+    "router",
+    "mongodb",
+    "mongoose",
+    "orm",
+    "model",
+    "crud",
+    "ngresource",
+    "schema"
+  ],
+  "author": "Dave Artz <dave@artzstudio.com> (http://artzstudio.com/)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/artzstudio/meanify/issues"
+  },
+  "homepage": "https://github.com/artzstudio/meanify"
+}
