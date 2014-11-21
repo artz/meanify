@@ -151,7 +151,7 @@ Option   | Description
 -------- | -------------
 limit    | Limits the result set count to the supplied value.
 skip     | Number of records to skip (offset).
-sort     | Sorts the record according to provided [shorthand sort syntax](http://mongoosejs.com/docs/api.html#query_Query-sort) (e.g. `&__sort=+name`).
+sort     | Sorts the record according to provided [shorthand sort syntax](http://mongoosejs.com/docs/api.html#query_Query-sort) (e.g. `&__sort=-name`).
 populate | Populates object references with the full resource (e.g. `&__populate=users`).
 count    | When present, returns the resulting count in an array (e.g. `[38]`).
 near     | Performs a geospatial query on given coordinates and an optional range (in meters), sorted by distance by default. Required format: `{longitude},{latitude},{range}`
