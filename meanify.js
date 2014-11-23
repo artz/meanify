@@ -1,3 +1,5 @@
+/* jshint node: true */
+'use strict';
 /*
 	✔︎ DELETE /items/{id}
 	✔︎ GET /items
@@ -13,6 +15,8 @@ var debug = require('debug')('meanify');
 var express = require('express');
 var mongoose = require('mongoose');
 var pluralize = require('pluralize');
+var parser = require('body-parser');
+
 // mongoose.set('debug', true);
 
 function Meanify(Model, options) {
@@ -131,11 +135,21 @@ function Meanify(Model, options) {
 
 		}
 
+		// Support JSON objects for range queries, etc.
+		var objRegex = /^{.*}$/;
+		for (var field in fields) {
+			var value = fields[field];
+			if (objRegex.test(value)) {
+				fields[field] = JSON.parse(value);
+			}
+		}
+
 		var query = Model.find(fields);
 
 		if (params.count) {
 			query.count(function (err, data) {
 				if (err) {
+					debug('Search middleware query.count error:', err);
 					return next(err);
 				}
 				return res.send([data]);
@@ -155,6 +169,7 @@ function Meanify(Model, options) {
 			}
 			query.exec(function (err, data) {
 				if (err) {
+					debug('Search middleware query error:', err);
 					return next(err);
 				}
 				return res.send(data);
@@ -162,11 +177,11 @@ function Meanify(Model, options) {
 		}
 	};
 
-	meanify.create = function create(req, res, next) {
+	meanify.create = function create(req, res) {
 
 		Model.create(req.body, function (err, data) {
 			if (err) {
-				return next(err);
+				return res.status(400).send(err);
 			}
 
 			// Populate relationships.
@@ -204,11 +219,11 @@ function Meanify(Model, options) {
 		});
 	};
 
-	meanify.update = function update(req, res, next) {
+	meanify.update = function update(req, res) {
 		var id = req.params.id;
 		Model.findById(id, function (err, data) {
 			if (err) {
-				debug('Error:', err);
+				debug('Update middleware Model.findById error:', err);
 				return res.status(400).send(err);
 			}
 			if (data) {
@@ -216,7 +231,7 @@ function Meanify(Model, options) {
 				for (var property in req.body) {
 					data[property] = req.body[property];
 				}
-				data.save(function (err, data) {
+				data.save(function (err) {
 					if (err) {
 						return res.status(400).send(err);
 					}
@@ -233,7 +248,7 @@ function Meanify(Model, options) {
 		if (id) {
 			Model.findByIdAndRemove(id, function (err, data) {
 				if (err) {
-					debug('Error:', err);
+					debug('Delete middleware Model.findByIdAndRemove error:', err);
 					return next(err);
 				}
 
@@ -296,7 +311,7 @@ function Meanify(Model, options) {
 				.populate(populate)
 				.exec(function (err, data) {
 				if (err) {
-					debug('Error:', err);
+					debug('Read middleware Model.findById error:', err);
 					return next(err);
 				}
 				if (data) {
@@ -351,6 +366,8 @@ module.exports = function (options) {
 		}
 
 		path = path + route;
+
+		router.use(parser.json());
 
 		var meanify = new Meanify(model, options);
 		router.get(path, meanify.search);

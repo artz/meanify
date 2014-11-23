@@ -156,6 +156,23 @@ populate | Populates object references with the full resource (e.g. `&__populate
 count    | When present, returns the resulting count in an array (e.g. `[38]`).
 near     | Performs a geospatial query on given coordinates and an optional range (in meters), sorted by distance by default. Required format: `{longitude},{latitude},{range}`
 
+Meanify also supports range queries. To perform a range query, pass in a stringified JSON object into the field on the request.
+
+```
+GET /api/posts?createdAt={"$gt":"2013-01-01T00:00:00.000Z"}
+```
+
+Using `ngResource` in AngularJS, performing range queries are easy:
+
+```
+// Find posts created on or after 1/1/2013.
+Posts.query({
+	createdAt: JSON.stringify({
+		$gte: new Date('2013-01-01')
+	})
+});
+```
+
 ### Create
 ```
 POST /{path}/{model}
@@ -183,11 +200,14 @@ Issuing a delete request to this route will result in the deletion of the resour
 
 ## Roadmap
 
-* Support for date range queries.
 * Generation of AngularJS ngResource service via `/api/?ngResource` endpoint.
-* Unit testing.
 
 ## Changelog
+
+### 0.1.2 | 11/23/2014
+* JSON object support in query parameters, enabling range queries.
+* `body-parser` middleware is bundled in meanify router.
+* Started unit test framework and added `.jshintrc`.
 
 ### 0.1.1 | 10/28/2014
 * Basic example of a service using meanify.
