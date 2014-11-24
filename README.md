@@ -1,4 +1,5 @@
 # meanify
+[![Gitter](https://badges.gitter.im/Join Chat.svg)](https://gitter.im/artzstudio/meanify?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Node.js Express middleware that uses your Mongoose schema to generate SCRUD API routes compatible with AngularJS and ngResource.
 
