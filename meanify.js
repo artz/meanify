@@ -336,6 +336,9 @@ module.exports = function (options) {
 		strict: options.strict || true
 	});
 
+	// Incoming request bodies are JSON parsed.
+	router.use(parser.json());
+
 	function api() {
 		return router;
 	}
@@ -352,10 +355,6 @@ module.exports = function (options) {
 
 		var path = options.path;
 
-		if (options.exclude && options.exclude.indexOf(model) !== -1) {
-			continue;
-		}
-
 		var route = model;
 		if (options.lowercase !== false) {
 			route = route.toLowerCase();
@@ -367,9 +366,17 @@ module.exports = function (options) {
 
 		path = path + route;
 
-		router.use(parser.json());
-
 		var meanify = new Meanify(model, options);
+
+		// Save route for manual middleware use case.
+		api[route] = meanify;
+
+		// Skip middleware routes for excluded models.
+		if (options.exclude && options.exclude.indexOf(model) !== -1) {
+			continue;
+		}
+
+		// Generate middleware routes.
 		router.get(path, meanify.search);
 		debug('GET    ' + path);
 		router.post(path, meanify.create);
@@ -389,8 +396,6 @@ module.exports = function (options) {
 		debug('POST   ' + path);
 		router.delete(path, meanify.delete);
 		debug('DELETE ' + path);
-
-		api[route] = meanify;
 	}
 
 	return api;

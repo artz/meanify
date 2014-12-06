@@ -15,7 +15,8 @@ var app = express();
 
 var meanify = require('../meanify')({
   path: '/api',
-  pluralize: true
+  pluralize: true,
+  exclude: ['Excluded']
 });
 app.use(meanify());
 

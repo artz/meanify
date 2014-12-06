@@ -14,3 +14,8 @@ var postSchema = new Schema({
 	createdAt: Date
 });
 mongoose.model('Post', postSchema);
+
+var excludedSchema = new Schema({
+	name: { type: String, required: true }
+});
+mongoose.model('Excluded', excludedSchema);

@@ -162,7 +162,7 @@ Meanify also supports range queries. To perform a range query, pass in a stringi
 GET /api/posts?createdAt={"$gt":"2013-01-01T00:00:00.000Z"}
 ```
 
-Using `ngResource` in AngularJS, performing range queries are easy:
+Using `ngResource` in AngularJS, performing a range query is easy:
 
 ```
 // Find posts created on or after 1/1/2013.
@@ -203,6 +203,9 @@ Issuing a delete request to this route will result in the deletion of the resour
 * Generation of AngularJS ngResource service via `/api/?ngResource` endpoint.
 
 ## Changelog
+
+### 0.1.3 | 12/5/2014
+* `exclude` option excludes models from router but retains middleware functions.
 
 ### 0.1.2 | 11/23/2014
 * JSON object support in query parameters, enabling range queries.
