@@ -219,15 +219,15 @@ function Meanify(Model, options) {
 		});
 	};
 
-	meanify.update = function update(req, res) {
+	meanify.update = function update(req, res, next) {
 		var id = req.params.id;
 		Model.findById(id, function (err, data) {
 			if (err) {
 				debug('Update middleware Model.findById error:', err);
-				return res.status(400).send(err);
+				return next(err);
 			}
 			if (data) {
-				// Simple extend.
+				// Update using simple extend.
 				for (var property in req.body) {
 					data[property] = req.body[property];
 				}
@@ -242,6 +242,34 @@ function Meanify(Model, options) {
 			}
 		});
 	};
+
+	// Methods
+	var methods = Model.schema.methods;
+	for (var method in methods) {
+		meanify.update[method] = function (req, res, next) {
+			var id = req.params.id;
+			if (id) {
+				Model.findById(id, function (err, data) {
+					if (err) {
+						debug('Method middleware Model.findById error:', err);
+						return next(err);
+					}
+					if (data) {
+						data[method](req.query, req.body, function (err, data) {
+							if (err) {
+								return res.status(400).send(err);
+							}
+							return res.send(data);
+						});
+					} else {
+						return res.status(404).send();
+					}
+				});
+			} else {
+				return res.status(404).send();
+			}
+		};
+	}
 
 	meanify.delete = function del(req, res, next) {
 		var id = req.params.id;
@@ -365,8 +393,8 @@ module.exports = function (options) {
 		}
 
 		path = path + route;
-
-		var meanify = new Meanify(model, options);
+		var Model = mongoose.model(model);
+		var meanify = new Meanify(Model, options);
 
 		// Save route for manual middleware use case.
 		api[route] = meanify;
@@ -394,6 +422,12 @@ module.exports = function (options) {
 		}
 		router.post(path, meanify.update);
 		debug('POST   ' + path);
+
+		var methods = Model.schema.methods;
+		for (var method in methods) {
+				router.post(path + '/' + method, meanify.update[method]);
+				debug('POST   ' + path + '/' + method);
+		}
 		router.delete(path, meanify.delete);
 		debug('DELETE ' + path);
 	}

@@ -197,12 +197,58 @@ DELETE /{path}/{model}/{id}
 ```
 Issuing a delete request to this route will result in the deletion of the resource and a `204` response if successful. If there was no resource, a `404` will be returned.
 
+## Model Instance Methods
+
+[Instance methods](http://mongoosejs.com/docs/guide.html#methods) can also be defined on models in Mongoose and accessed via the meanify API routes.
+
+```
+postSchema.method('mymethod', function (params, body, callback) {
+	var error = null;
+	if (params.foo) {
+		// Do some stuff with params.
+		body.foo = params.foo;
+		// Return new object in the response.
+		callback(error, body);
+	} else {
+		error = {
+			name: 'NoFoo',
+			message: 'Foo not found.'
+		};
+		// Send error.
+		callback(error);
+	}
+});
+```
+
+Instance models should expect three arguments: the query parameters passed on the `POST` request, the body of the `POST` (the `ngResource` object instance) and a callback to pass the results.
+
+If successful (i.e. a `200` response), the callback should pass `null` as the first argument, and the modified object body second. If failure (i.e. a `400` response), the error should be passed as the first argument.
+
+Note that inside the schema method context, `this` refers to the resource document found in the database.
+
+**Note:** When naming your instance methods, choose something other than the [built-in instance methods in Mongoose](http://mongoosejs.com/docs/api.html#document-js).
+
+Methods are invoked by adding it after the `id` segment of the `POST` request.
+
+```
+POST /{path}/{model}/{id}/{method}?foo=bar
+```
+The query parameters and body of the `POST` are passed to the instance method, returning a `200` status and resource body if successful, or a `400` status and error object if not.
+
+Custom instance methods are made available under the `meanify.update` property for greater control in your routes. Note that the `:id` parameter is required.
+
+```
+app.post('/api/posts/:id/mymethod', meanify.posts.update.mymethod);
+```
 
 ## Roadmap
 
 * Generation of AngularJS ngResource service via `/api/?ngResource` endpoint.
 
 ## Changelog
+
+### 0.1.4 | 12/7/2014
+* Generated routes and middleware for model instance methods.
 
 ### 0.1.3 | 12/5/2014
 * `exclude` option excludes models from router but retains middleware functions.

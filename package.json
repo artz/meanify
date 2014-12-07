@@ -1,6 +1,6 @@
 {
   "name": "meanify",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Node.js Express middleware that uses your Mongoose schema to generate SCRUD API routes compatible with AngularJS and ngResource.",
   "main": "meanify.js",
   "dependencies": {

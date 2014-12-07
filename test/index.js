@@ -33,6 +33,7 @@ mongoose.model('Post').remove({}, function () {
 
 var server = app.listen(port);
 
+var testPost;
 test('Create', function (test) {
 
   test.plan(5);
@@ -61,6 +62,10 @@ test('Create', function (test) {
         body: post
       }, function (err, res) {
         var body = res.body;
+        // populate initial post id
+        if (!testPost) {
+          testPost = body;
+        }
         test.equal(body.title, post.title, 'Response contains post title (' + post.title + ').');
       });
     });
@@ -92,6 +97,27 @@ test('Search', function (test) {
   request(url + 'posts?createdAt=' + JSON.stringify({ $gte: new Date('2013-01-01') }), function (err, res) {
     var posts = JSON.parse(res.body);
     test.equal(posts.length, 2, 'Found 2 posts.');
+  });
+});
+
+test('Methods', function (test) {
+  test.plan(5);
+  request.post(url + 'posts/' + testPost._id + '/params?foo=bar', {
+    json: true,
+    body: testPost
+  }, function (err, res) {
+    var data = res.body;
+    test.equal(res.statusCode, 200, '200 Success reported.');
+    test.equal(data.foo, 'bar', 'Foo found: ' + JSON.stringify(data));
+    test.equal(data.title, 'Custom', 'Custom title found: ' + data.title);
+  });
+  request.post(url + 'posts/' + testPost._id + '/params?bar=foo', {
+    json: true,
+    body: testPost
+  }, function (err, res) {
+    var data = res.body;
+    test.equal(res.statusCode, 400, '400 Error reported.');
+    test.equal(data.name, 'NoFoo', 'Error: ' + data.message);
   });
 });
 
