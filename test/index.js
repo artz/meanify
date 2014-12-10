@@ -88,6 +88,19 @@ test('Create', function (test) {
   });
 });
 
+test('Update', function (test) {
+  test.plan(1);
+  testPost.type = 'poop';
+  request.post({
+    url: url + 'posts/' + testPost._id,
+    json: true,
+    body: testPost
+  }, function (err, res) {
+    var error = res.body;
+    test.equal(error.name, 'ValidationError', 'Custom validation error received.');
+  });
+});
+
 test('Search', function (test) {
   test.plan(2);
   request(url + 'posts', function (err, res) {

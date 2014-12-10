@@ -6,11 +6,13 @@ var userSchema = new Schema({
 	name: { type: String, required: true },
 	email: { type: String, required: true }
 });
+
 mongoose.model('User', userSchema);
 
 var commentSchema = new Schema({
 	message: { type: String, required: true }
 });
+
 commentSchema.pre('save', function (next) {
 	if (this.message.length <= 5) {
 		var error = new Error();
@@ -25,8 +27,13 @@ var postSchema = new Schema({
 	title: { type: String, required: true },
 	author: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 	comments: [ commentSchema ],
+	type: String,
 	createdAt: Date
 });
+
+postSchema.path('type').validate(function (value) {
+  return /article|review/i.test(value);
+}, 'InvalidType');
 
 postSchema.method('params', function (params, body, callback) {
 	var error = null;
@@ -48,4 +55,5 @@ mongoose.model('Post', postSchema);
 var excludedSchema = new Schema({
 	name: { type: String, required: true }
 });
+
 mongoose.model('Excluded', excludedSchema);

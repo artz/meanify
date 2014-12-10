@@ -469,7 +469,7 @@ function Meanify(Model, options) {
 							return next(err);
 						}
 						if (parent) {
-							var child = parent[field].id(subId).remove();
+							parent[field].id(subId).remove();
 							parent.save(function (err) {
 								if (err) {
 									return res.status(400).send(err);
@@ -577,18 +577,27 @@ module.exports = function (options) {
 		var paths = Model.schema.paths;
 		var subpath;
 		for (var field in paths) {
-			var path = paths[field];
+			// TODO: Bad re-use of path.
+			path = paths[field];
 			if (path.schema) {
 				subpath = root + '/' + field;
 				router.get(subpath, meanify[field].search);
 				debug('GET    ' + subpath);
 				router.post(subpath, meanify[field].create);
 				debug('POST   ' + subpath);
+				if (options.puts) {
+					router.put(subpath, meanify[field].create);
+					debug('PUT    ' + subpath);
+				}
 				subpath += '/:' + field + 'Id';
 				router.get(subpath, meanify[field].read);
 				debug('GET    ' + subpath);
 				router.post(subpath, meanify[field].update);
 				debug('POST   ' + subpath);
+				if (options.puts) {
+					router.put(subpath, meanify[field].update);
+					debug('PUT    ' + subpath);
+				}
 				router.delete(subpath, meanify[field].delete);
 				debug('DELETE ' + subpath);
 			}

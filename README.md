@@ -233,14 +233,62 @@ The sub-document middleware is made available underneath the parent middleware.
 app.post('/api/posts/:id/comments/:commentId', meanify.posts.comments.update);
 ```
 
-## Validation and Hooks
+## Validation Hooks
 
-Meanify will handle validation described by your models, as well as any custom logic in your `save` and `validate` hooks.
+Meanify will handle [validation described by your models](http://mongoosejs.com/docs/validation.html), as well as any [error handling defined](http://mongoosejs.com/docs/middleware.html) in your `pre` middleware hooks.
 
+```
+postSchema.path('type').validate(function (value) {
+  return /article|review/i.test(value);
+}, 'InvalidType');
 
+```
 
+The above custom validator example will return a validation error if a value other than "article" or "review" exists in the `type` field upon creation or update.
 
-## Model Instance Methods
+Example response:
+
+```
+{
+	message: 'Validation failed',
+	name: 'ValidationError',
+	errors: { 
+		type:
+			{ 
+				message: 'InvalidType',
+				name: 'ValidatorError',
+				path: 'type',
+				type: 'user defined',
+				value: 'poop'
+			}
+		}
+	}
+}
+```
+
+Advanced validation for the create and update routes may be achieved using the `pre` hook, for example:
+
+```
+commentSchema.pre('save', function (next) {
+	if (this.message.length <= 5) {
+		var error = new Error();
+		error.name = 'ValidateLength'
+		error.message = 'Comments must be longer than 5 characters.';
+		return next(error);
+	}
+	next();
+});
+```
+Meanify will return a `400` with the error object passed by your middleware.
+
+```
+{
+	name: 'ValidateLength',
+	message: 'Comments must be longer than 5 characters.' 
+}
+```
+
+## Instance Methods
 
 [Instance methods](http://mongoosejs.com/docs/guide.html#methods) can also be defined on models in Mongoose and accessed via the meanify API routes.
 
@@ -284,8 +332,13 @@ Custom instance methods are made available under the `meanify.update` property f
 app.post('/api/posts/:id/mymethod', meanify.posts.update.mymethod);
 ```
 
+**Note:** Instance methods are not supported on sub-documents.
+
 ## Roadmap
 
+* Nested sub-documents.
+* Sub-document instance methods.
+* Static methods.
 * Generation of AngularJS ngResource service via `/api/?ngResource` endpoint.
 * Examples and documentation on integration in AngularJS.
 
@@ -293,6 +346,7 @@ app.post('/api/posts/:id/mymethod', meanify.posts.update.mymethod);
 
 ### 0.1.5 | 12/8/2014
 * Generated routes and middleware for schema sub-documents.
+* Validation and error handling in middleware `pre` hooks.
 
 ### 0.1.4 | 12/7/2014
 * Generated routes and middleware for model instance methods.
