@@ -49,6 +49,7 @@ function Meanify(Model, options) {
 	// Enable relationship support on create/delete.
 	if (options.relate) {
 		var relationships = [];
+		// TODO: Model.tree?
 		var tree = Model.base.modelSchemas[modelName].tree;
 		for (var property in tree) {
 
@@ -65,6 +66,7 @@ function Meanify(Model, options) {
 
 			if (schema.ref) {
 				var relatedModel = mongoose.model(schema.ref);
+				// TODO: relatedModel.tree?
 				var relatedTree = relatedModel.base.modelSchemas[schema.ref].tree;
 				for (var relatedProperty in relatedTree) {
 
@@ -353,6 +355,145 @@ function Meanify(Model, options) {
 		}
 	};
 
+	function subdoc(field) {
+		return {
+			search: function (req, res, next) {
+				var id = req.params.id;
+				if (id) {
+					Model.findById(id, function (err, parent) {
+						if (err) {
+							debug('Sub-document search middleware (' + field + ') Model.findById error:', err);
+							return next(err);
+						}
+						if (parent) {
+							// TODO: Research available advanced query options.
+							// http://docs.mongodb.org/manual/tutorial/query-documents/#embedded-documents
+							return res.send(parent[field]);
+						} else {
+							return res.status(404).send();
+						}
+					});
+				} else {
+					return res.status(404).send();
+				}
+			},
+			create: function (req, res, next) {
+				var id = req.params.id;
+				if (id) {
+					Model.findById(id, function (err, parent) {
+						if (err) {
+							debug('Sub-document create middleware (' + field + ') Model.findById error:', err);
+							return next(err);
+						}
+						if (parent) {
+							var index = parent[field].push(req.body) - 1;
+							var child = parent[field][index];
+							parent.save(function (err) {
+								if (err) {
+									return res.status(400).send(err);
+								}
+								return res.status(201).send(child);
+							});
+						} else {
+							return res.status(404).send();
+						}
+					});
+				} else {
+					return res.status(404).send();
+				}
+			},
+			read: function (req, res, next) {
+				var id = req.params.id;
+				var subId = req.params[field + 'Id'];
+				if (id) {
+					Model.findById(id, function (err, parent) {
+						if (err) {
+							debug('Sub-document read middleware (' + field + ') Model.findById error:', err);
+							return next(err);
+						}
+						if (parent) {
+							var child = parent[field].id(subId);
+							if (child) {
+								return res.send(child);
+							} else {
+								return res.status(404).send();
+							}
+						} else {
+							return res.status(404).send();
+						}
+					});
+				} else {
+					return res.status(404).send();
+				}
+			},
+			update: function (req, res, next) {
+				var id = req.params.id;
+				var subId = req.params[field + 'Id'];
+				if (id) {
+					Model.findById(id, function (err, parent) {
+						if (err) {
+							debug('Sub-document update middleware (' + field + ') Model.findById error:', err);
+							return next(err);
+						}
+						if (parent) {
+							var child = parent[field].id(subId);
+							if (child) {
+								// Update using simple extend.
+								for (var property in req.body) {
+									child[property] = req.body[property];
+								}
+								parent.save(function (err) {
+									if (err) {
+										return res.status(400).send(err);
+									}
+									return res.status(200).send(child);
+								});
+							} else {
+								return res.status(404).send();
+							}
+						} else {
+							return res.status(404).send();
+						}
+					});
+				} else {
+					return res.status(404).send();
+				}
+			},
+			delete: function (req, res, next) {
+				var id = req.params.id;
+				var subId = req.params[field + 'Id'];
+				if (id) {
+					Model.findById(id, function (err, parent) {
+						if (err) {
+							debug('Sub-document delete middleware (' + field + ') Model.findById error:', err);
+							return next(err);
+						}
+						if (parent) {
+							var child = parent[field].id(subId).remove();
+							parent.save(function (err) {
+								if (err) {
+									return res.status(400).send(err);
+								}
+								return res.status(204).send();
+							});
+						} else {
+							return res.status(404).send();
+						}
+					});
+				} else {
+					return res.status(404).send();
+				}
+			}
+		};
+	}
+
+	var paths = Model.schema.paths;
+	for (var field in paths) {
+		var path = paths[field];
+		if (path.schema) {
+			meanify[field] = subdoc(field);
+		}
+	}
 }
 
 module.exports = function (options) {
@@ -413,7 +554,7 @@ module.exports = function (options) {
 			router.put(path, meanify.create);
 			debug('PUT    ' + path);
 		}
-		path = path + '/:id';
+		path += '/:id';
 		router.get(path, meanify.read);
 		debug('GET    ' + path);
 		if (options.puts) {
@@ -430,6 +571,28 @@ module.exports = function (options) {
 		}
 		router.delete(path, meanify.delete);
 		debug('DELETE ' + path);
+
+		// Sub-document route support.
+		var root = path;
+		var paths = Model.schema.paths;
+		var subpath;
+		for (var field in paths) {
+			var path = paths[field];
+			if (path.schema) {
+				subpath = root + '/' + field;
+				router.get(subpath, meanify[field].search);
+				debug('GET    ' + subpath);
+				router.post(subpath, meanify[field].create);
+				debug('POST   ' + subpath);
+				subpath += '/:' + field + 'Id';
+				router.get(subpath, meanify[field].read);
+				debug('GET    ' + subpath);
+				router.post(subpath, meanify[field].update);
+				debug('POST   ' + subpath);
+				router.delete(subpath, meanify[field].delete);
+				debug('DELETE ' + subpath);
+			}
+		}
 	}
 
 	return api;

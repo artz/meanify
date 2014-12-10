@@ -121,6 +121,113 @@ test('Methods', function (test) {
   });
 });
 
+var testComment;
+test('Sub-document Create', function (test) {
+  test.plan(7);
+  request.post({
+    url: url + 'posts/' + testPost._id + '/comments',
+    json: true,
+    body: {
+      message: 'Marvelous.'
+    }
+  }, function (err, res) {
+    var comment = res.body;
+    testComment = comment;
+    test.equal(res.statusCode, 201, 'Comment created; status is 201.');
+    test.equal(comment.message, 'Marvelous.', 'Response contains comment. ' + JSON.stringify(comment));
+  });
+
+  request.post({
+    url: url + 'posts/' + testPost._id + '/comments',
+    json: true,
+    body: {
+      message: 'Tiny.'
+    }
+  }, function (err, res) {
+    var data = res.body;
+    test.equal(res.statusCode, 400, '400 Error reported.');
+    test.equal(data.name, 'ValidateLength', 'Response contains error name (' + data.name + ')');
+    test.equal(data.message, 'Comments must be longer than 5 characters.', 'Response contains error message (' + data.message + ')');
+  });
+
+  request.post({
+    url: url + 'posts/' + testPost._id + '/comments',
+    json: true,
+    body: {}
+  }, function (err, res) {
+    var data = res.body;
+    test.equal(res.statusCode, 400, '400 Error reported.');
+    test.equal(data.name, 'ValidationError', 'Response contains error name (' + data.name + ')');
+  });
+
+});
+
+test('Sub-document Read', function (test) {
+  test.plan(3);
+  request.get({
+    url: url + 'posts/' + testPost._id + '/comments/' + testComment._id,
+    json: true
+  }, function (err, res) {
+    var comment = res.body;
+    test.equal(res.statusCode, 200, 'Comment read success; status is 200.');
+    test.equal(comment.message, 'Marvelous.', 'Read comment. ' + JSON.stringify(comment));
+   });
+
+  request.get({
+    url: url + 'posts/' + testPost._id + '/comments/should404',
+    json: true
+  }, function (err, res) {
+    var comment = res.body;
+    test.equal(res.statusCode, 404, 'Comment 404 success.');
+  });
+});
+
+test('Sub-document Update', function (test) {
+  test.plan(2);
+  request.post({
+    url: url + 'posts/' + testPost._id + '/comments/' + testComment._id,
+    json: true,
+    body: {
+      message: 'Fantastic.'
+    }
+  }, function (err, res) {
+    var comment = res.body;
+    test.equal(comment.message, 'Fantastic.', 'Updated message (' + comment.message + ')');
+  });
+  request.post({
+    url: url + 'posts/' + testPost._id + '/comments/' + testComment._id,
+    json: true,
+    body: {
+      message: ''
+    }
+  }, function (err, res) {
+    var error = res.body;
+    test.equal(error.name, 'ValidationError', 'Validation error received on update.');
+  });
+});
+
+test('Sub-document Delete', function (test) {
+  test.plan(1);
+  request.del({
+    url: url + 'posts/' + testPost._id + '/comments/' + testComment._id,
+    json: true
+  }, function (err, res) {
+    test.equal(res.statusCode, 204, 'Deleted comment (' + res.statusCode + ')');
+  });
+});
+
+test('Sub-document Search', function (test) {
+  test.plan(2);
+  request.get({
+    url: url + 'posts/' + testPost._id + '/comments',
+    json: true
+  }, function (err, res) {
+    var comments = res.body;
+    test.equal(res.statusCode, 200, 'Successful search (200).');
+    test.equal(comments.length, 0, 'Empty array returned. ' + JSON.stringify(comments));
+  });
+});
+
 test('Exit', function (test) {
   test.plan(2);
   server.close(function () {

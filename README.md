@@ -197,6 +197,49 @@ DELETE /{path}/{model}/{id}
 ```
 Issuing a delete request to this route will result in the deletion of the resource and a `204` response if successful. If there was no resource, a `404` will be returned.
 
+## Sub-documents
+
+[Mongoose sub-documents](http://mongoosejs.com/docs/subdocs.html) let you define schemas inside schemas, allowing for nested data structures that [can be validated](http://mongoosejs.com/docs/validation.html) and [hooked into via middleware](http://mongoosejs.com/docs/middleware.html). 
+
+```
+var commentSchema = new Schema({
+	message: { type: String, required: true }
+});
+
+var postSchema = new Schema({
+	title: { type: String, required: true },
+	author: { type: Schema.Types.ObjectId, ref: 'User', index: true },
+	comments: [ commentSchema ],
+	createdAt: Date
+});
+
+mongoose.model('Post', postSchema);
+```
+
+Meanify will detect sub-documents and expose SCRUD routes beneath the top-level models.
+
+```
+meanify GET    /api/posts/:id/comments +1ms
+meanify POST   /api/posts/:id/comments +0ms
+meanify GET    /api/posts/:id/comments/:commentsId +0ms
+meanify POST   /api/posts/:id/comments/:commentsId +0ms
+meanify DELETE /api/posts/:id/comments/:commentsId +0ms
+```
+These routes work similar to the model SCRUD routes defined above, with the exception of the Search route.  Currently, options are not supported so a `GET` to the sub-document collection will simply return the entire array set.
+
+The sub-document middleware is made available underneath the parent middleware.
+
+```
+app.post('/api/posts/:id/comments/:commentId', meanify.posts.comments.update);
+```
+
+## Validation and Hooks
+
+Meanify will handle validation described by your models, as well as any custom logic in your `save` and `validate` hooks.
+
+
+
+
 ## Model Instance Methods
 
 [Instance methods](http://mongoosejs.com/docs/guide.html#methods) can also be defined on models in Mongoose and accessed via the meanify API routes.
@@ -244,8 +287,12 @@ app.post('/api/posts/:id/mymethod', meanify.posts.update.mymethod);
 ## Roadmap
 
 * Generation of AngularJS ngResource service via `/api/?ngResource` endpoint.
+* Examples and documentation on integration in AngularJS.
 
 ## Changelog
+
+### 0.1.5 | 12/8/2014
+* Generated routes and middleware for schema sub-documents.
 
 ### 0.1.4 | 12/7/2014
 * Generated routes and middleware for model instance methods.
