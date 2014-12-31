@@ -16,7 +16,7 @@ var commentSchema = new Schema({
 commentSchema.pre('save', function (next) {
 	if (this.message.length <= 5) {
 		var error = new Error();
-		error.name = 'ValidateLength'
+		error.name = 'ValidateLength';
 		error.message = 'Comments must be longer than 5 characters.';
 		return next(error);
 	}
@@ -35,18 +35,20 @@ postSchema.path('type').validate(function (value) {
   return /article|review/i.test(value);
 }, 'InvalidType');
 
-postSchema.method('params', function (params, body, callback) {
+postSchema.method('params', function (req, res, next) {
 	var error = null;
-	if (params.foo) {
+	var body = req.body;
+	var query = req.query;
+	if (query.foo) {
 		body.title = 'Custom';
-		body.foo = params.foo;
-		callback(error, body);
+		body.foo = query.foo;
+		next(error, body);
 	} else {
 		error = {
 			name: 'NoFoo',
 			message: 'Foo not found.'
 		};
-		callback(error);
+		next(error);
 	}
 });
 

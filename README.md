@@ -199,7 +199,7 @@ Issuing a delete request to this route will result in the deletion of the resour
 
 ## Sub-documents
 
-[Mongoose sub-documents](http://mongoosejs.com/docs/subdocs.html) let you define schemas inside schemas, allowing for nested data structures that [can be validated](http://mongoosejs.com/docs/validation.html) and [hooked into via middleware](http://mongoosejs.com/docs/middleware.html). 
+[Mongoose sub-documents](http://mongoosejs.com/docs/subdocs.html) let you define schemas inside schemas, allowing for nested data structures that [can be validated](http://mongoosejs.com/docs/validation.html) and [hooked into via middleware](http://mongoosejs.com/docs/middleware.html).
 
 ```
 var commentSchema = new Schema({
@@ -230,7 +230,7 @@ These routes work similar to the model SCRUD routes defined above, with the exce
 The sub-document middleware is made available underneath the parent middleware.
 
 ```
-app.post('/api/posts/:id/comments/:commentId', meanify.posts.comments.update);
+app.post('/api/posts/:id/comments/:commentsId', meanify.posts.comments.update);
 ```
 
 ## Validation Hooks
@@ -252,9 +252,9 @@ Example response:
 {
 	message: 'Validation failed',
 	name: 'ValidationError',
-	errors: { 
+	errors: {
 		type:
-			{ 
+			{
 				message: 'InvalidType',
 				name: 'ValidatorError',
 				path: 'type',
@@ -284,7 +284,7 @@ Meanify will return a `400` with the error object passed by your middleware.
 ```
 {
 	name: 'ValidateLength',
-	message: 'Comments must be longer than 5 characters.' 
+	message: 'Comments must be longer than 5 characters.'
 }
 ```
 
@@ -293,27 +293,31 @@ Meanify will return a `400` with the error object passed by your middleware.
 [Instance methods](http://mongoosejs.com/docs/guide.html#methods) can also be defined on models in Mongoose and accessed via the meanify API routes.
 
 ```
-postSchema.method('mymethod', function (params, body, callback) {
+postSchema.method('mymethod', function (req, res, next) {
 	var error = null;
-	if (params.foo) {
-		// Do some stuff with params.
-		body.foo = params.foo;
+	var query = req.query;
+	var body = req.body;
+	if (query.foo) {
+		// Do some stuff with query params.
+		body.foo = query.foo;
 		// Return new object in the response.
-		callback(error, body);
+		next(error, body);
 	} else {
 		error = {
 			name: 'NoFoo',
 			message: 'Foo not found.'
 		};
 		// Send error.
-		callback(error);
+		next(error);
 	}
 });
 ```
 
-Instance models should expect three arguments: the query parameters passed on the `POST` request, the body of the `POST` (the `ngResource` object instance) and a callback to pass the results.
+Instance methods defined on schemas should expect three arguments: the `request` object, `response` object, and a callback.
 
-If successful (i.e. a `200` response), the callback should pass `null` as the first argument, and the modified object body second. If failure (i.e. a `400` response), the error should be passed as the first argument.
+If the callback sees `null` as the first argument and the modified resource object second, a successful `200` response will be returned along with the object as the body. If the callback sees the error defined as the first argument, a failure (i.e. a `400`) response is returned.
+
+The `response` object gives you more control over the response and status code sent. For example, you could send a `401` or `403` response status instead of the standard `400` available by using the callback.
 
 Note that inside the schema method context, `this` refers to the resource document found in the database.
 
@@ -343,6 +347,9 @@ app.post('/api/posts/:id/mymethod', meanify.posts.update.mymethod);
 * Examples and documentation on integration in AngularJS.
 
 ## Changelog
+
+### 0.1.6 | 12/31/2014
+* Instance method constructor supports `req`, `res`, `next` interface.
 
 ### 0.1.5 | 12/8/2014
 * Generated routes and middleware for schema sub-documents.

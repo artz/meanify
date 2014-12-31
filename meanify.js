@@ -245,10 +245,9 @@ function Meanify(Model, options) {
 		});
 	};
 
-	// Methods
-	var methods = Model.schema.methods;
-	for (var method in methods) {
-		meanify.update[method] = function (req, res, next) {
+	// Instance Methods
+	function instanceMethod(method) {
+		return function (req, res, next) {
 			var id = req.params.id;
 			if (id) {
 				Model.findById(id, function (err, data) {
@@ -257,7 +256,7 @@ function Meanify(Model, options) {
 						return next(err);
 					}
 					if (data) {
-						data[method](req.query, req.body, function (err, data) {
+						data[method](req, res, function (err, data) {
 							if (err) {
 								return res.status(400).send(err);
 							}
@@ -271,6 +270,10 @@ function Meanify(Model, options) {
 				return res.status(404).send();
 			}
 		};
+	}
+	var methods = Model.schema.methods;
+	for (var method in methods) {
+		meanify.update[method] = instanceMethod(method);
 	}
 
 	meanify.delete = function del(req, res, next) {

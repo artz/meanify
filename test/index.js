@@ -16,7 +16,8 @@ var app = express();
 var meanify = require('../meanify')({
   path: '/api',
   pluralize: true,
-  exclude: ['Excluded']
+  exclude: ['Excluded'],
+  jsonp: true
 });
 app.use(meanify());
 
@@ -190,7 +191,6 @@ test('Sub-document Read', function (test) {
     url: url + 'posts/' + testPost._id + '/comments/should404',
     json: true
   }, function (err, res) {
-    var comment = res.body;
     test.equal(res.statusCode, 404, 'Comment 404 success.');
   });
 });
