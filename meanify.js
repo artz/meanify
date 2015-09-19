@@ -503,6 +503,7 @@ function Meanify(Model, options) {
 	for (var path in Model.schema.paths)
 	{
 		if (path == '__v') continue;
+		console.log(Model.schema.paths[path].defaultValue);
 		var def =  Model.schema.paths[path].defaultValue;
 		if (typeof def === "undefined") def = null;
 		blankDocument[path] = def;
@@ -511,7 +512,15 @@ function Meanify(Model, options) {
 	// blank url endpoint to return the blank object
 	meanify.blank = function(req, res, next)
 	{
-		res.json(blankDocument);
+		var data = {};
+		// go through the fields and evaluate any functions
+		for (var path in Model.schema.paths)
+		{
+			if (path == '__v') continue;
+			if (typeof blankDocument[path] === "function") data[path] = blankDocument[path]();
+			else data[path] = blankDocument[path];
+		}
+		res.json(data);
 	}
 }
 
@@ -574,7 +583,7 @@ module.exports = function (options) {
 			debug('PUT    ' + path);
 		}
 		router.propfind(path, meanify.blank);
-		console.log('PROPFIND    ' + path);
+		debug('PROPFIND    ' + path);
 		path += '/:id';
 		router.get(path, meanify.read);
 		debug('GET    ' + path);
