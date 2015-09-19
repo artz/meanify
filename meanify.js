@@ -502,20 +502,20 @@ function Meanify(Model, options) {
 	var blankDocument = {};
 	for (var path in Model.schema.paths)
 	{
-		if ((path == '__v') || (path == '_id')) continue; // skip _id and __v
+		// since we'd never need to bind these to the UI, let the defaults be generated at CREATE time instead
+		if ((path == '__v') || (path == '_id')) continue; 
+		
 		var def =  Model.schema.paths[path].defaultValue;
 		if (typeof def === "undefined") def = null;
 		blankDocument[path] = def;
 	}
 
-	// blank url endpoint to return the blank object
+	// blank url endpoint to return the blank object after evaluating any functions
 	meanify.blank = function(req, res, next)
 	{
 		var data = {};
-		// go through the fields and evaluate any functions
-		for (var path in Model.schema.paths)
+		for (var path in blankDocument)
 		{
-			if (path == '__v') continue;
 			if (typeof blankDocument[path] === "function") data[path] = blankDocument[path]();
 			else data[path] = blankDocument[path];
 		}
