@@ -63,11 +63,13 @@ The meanify log will show the newly created endpoints.
 ```
 meanify GET    /api/users +0ms
 meanify POST   /api/users +0ms
+meanify PROPFIND    /api/users +0ms
 meanify GET    /api/users/:id +0ms
 meanify POST   /api/users/:id +0ms
 meanify DELETE /api/users/:id +0ms
 meanify GET    /api/posts +0ms
 meanify POST   /api/posts +0ms
+meanify PROPFIND    /api/posts +0ms
 meanify GET    /api/posts/:id +0ms
 meanify POST   /api/posts/:id +0ms
 meanify DELETE /api/posts/:id +0ms
@@ -196,6 +198,12 @@ Posting (or putting, if enabled) to the update route will validate the incoming 
 DELETE /{path}/{model}/{id}
 ```
 Issuing a delete request to this route will result in the deletion of the resource and a `204` response if successful. If there was no resource, a `404` will be returned.
+
+### Propfind
+```
+PROPFIND /{path}/{model}
+```
+Returns a blank object that has null for every field, or the defaultValue if one is supplied in the schema.  Does not return _id.  Does not require a request body.
 
 ## Sub-documents
 
