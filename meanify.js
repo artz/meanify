@@ -8,7 +8,7 @@
 	✔︎ PUT /items (optional)
 	✔︎ PUT /items/{id}
 	✔︎ POST /items/{id} (optional)
-
+	✔︎ PROPFIND /items (returns a blank record with default values or null for each field - use to databind to Create forms)
 	TODO: https://github.com/mgonto/restangular
 */
 var debug = require('debug')('meanify');
@@ -497,6 +497,22 @@ function Meanify(Model, options) {
 			meanify[field] = subdoc(field);
 		}
 	}
+	
+	// blank object used to databind to create forms
+	var blankDocument = {};
+	for (var path in Model.schema.paths)
+	{
+		if (path == '__v') continue;
+		var def =  Model.schema.paths[path].defaultValue;
+		if (typeof def === "undefined") def = null;
+		blankDocument[path] = def;
+	}
+
+	// blank url endpoint to return the blank object
+	meanify.blank = function(req, res, next)
+	{
+		res.json(blankDocument);
+	}
 }
 
 module.exports = function (options) {
@@ -557,6 +573,8 @@ module.exports = function (options) {
 			router.put(path, meanify.create);
 			debug('PUT    ' + path);
 		}
+		router.propfind(path, meanify.blank);
+		console.log('PROPFIND    ' + path);
 		path += '/:id';
 		router.get(path, meanify.read);
 		debug('GET    ' + path);
@@ -566,7 +584,7 @@ module.exports = function (options) {
 		}
 		router.post(path, meanify.update);
 		debug('POST   ' + path);
-
+		
 		var methods = Model.schema.methods;
 		for (var method in methods) {
 				router.post(path + '/' + method, meanify.update[method]);
