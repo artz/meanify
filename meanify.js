@@ -502,8 +502,7 @@ function Meanify(Model, options) {
 	var blankDocument = {};
 	for (var path in Model.schema.paths)
 	{
-		if (path == '__v') continue;
-		console.log(Model.schema.paths[path].defaultValue);
+		if ((path == '__v') || (path == '_id')) continue; // skip _id and __v
 		var def =  Model.schema.paths[path].defaultValue;
 		if (typeof def === "undefined") def = null;
 		blankDocument[path] = def;
