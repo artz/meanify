@@ -101,10 +101,7 @@ var meanify = require('meanify')({
 	strict: false,
 	puts: true,
 	relate: true,
-	filter: function(req) { 
-        return { public: true } 
-    },
-  }
+	filter: { public: true } 
 });
 app.use(meanify());
 ```
