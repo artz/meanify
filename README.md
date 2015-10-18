@@ -135,6 +135,7 @@ Experimental feature that automatically populates references on create and remov
 ### filter
 Defines pre-set field values that allow server-enforced filtering and access control.  These field values are applied to all requests and override any values supplied for these fields in the request.
 e.g. if the filter is { public: true } then
+
 Method      | Effect of filter
 ----------- | ----------------
 SEARCH/READ | will only return resource(s) that have public = true 
