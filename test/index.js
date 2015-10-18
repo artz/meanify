@@ -17,7 +17,12 @@ var meanify = require('../meanify')({
   path: '/api',
   pluralize: true,
   exclude: ['Excluded'],
-  jsonp: true
+  jsonp: true,
+  filter: function(req,model) { 
+    var result = {};
+    if (model.modelName == 'Filtered') result['name'] = 'Mr Filter';
+    return result;
+  }
 });
 app.use(meanify());
 
@@ -30,6 +35,14 @@ mongoose.model('User').remove({}, function () {
 });
 mongoose.model('Post').remove({}, function () {
   console.log('Posts removed.');
+});
+var notAllowedFiltered;
+mongoose.model('Filtered').remove({}, function () {
+  console.log('Filtered removed.');
+  mongoose.model('Filtered').create({name: 'Not Allowed',email: 'not@allowed.com'}, function (err,res) {
+    console.log('  Not Allowed record created');
+    notAllowedFiltered = res;
+  });
 });
 
 var server = app.listen(port);
@@ -250,6 +263,42 @@ test('Sub-document Search', function (test) {
     var comments = res.body;
     test.equal(res.statusCode, 200, 'Successful search (200).');
     test.equal(comments.length, 0, 'Empty array returned. ' + JSON.stringify(comments));
+  });
+});
+
+var filtered;
+test('Create Filtered', function (test) {
+  test.plan(2);
+  request.post({
+    url: url + 'filtereds',
+    json: true,
+    body: {
+      name: 'Dave',
+      email: 'dave@artzstudio.com'
+    }
+  }, function (err, res) {
+    test.equal(res.statusCode, 201, 'User created; status is 201.');
+    test.equal(res.body.name, 'Mr Filter', 'Response contains user (' + res.body.name + ').');
+    filtered = res.body;
+  });
+});
+
+test('Search Filtered', function (test) {
+  test.plan(1);
+  request(url + 'filtereds', function (err, res) {
+    var posts = JSON.parse(res.body);
+    test.equal(posts.length, 1, 'Found 1 filtered item.');
+  });
+});
+
+test('Delete Filtered Not Allowed', function (test) {
+  test.plan(1);
+  request({
+    url: url + 'filtereds/' + notAllowedFiltered._id,
+    method: 'delete',
+  }, function (err, res) {
+    test.equal(res.statusCode, 404, 'Failed to delete record not allowed to delete');
+    filtered = res.body;
   });
 });
 

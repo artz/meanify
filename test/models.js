@@ -59,3 +59,10 @@ var excludedSchema = new Schema({
 });
 
 mongoose.model('Excluded', excludedSchema);
+
+var filteredSchema = new Schema({
+	name: { type: String, required: true },
+	email: { type: String, required: true }
+});
+
+mongoose.model('Filtered', filteredSchema);

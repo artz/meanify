@@ -91,6 +91,13 @@ function Meanify(Model, options) {
 		}
 	}
 
+	// determine the filter function (passed req as a parameter, returns fields ALWAYS included in the filter for 
+	// all db operations.  Allows you to restrict access to the objects that belong to a certain user etc.
+	if (options.filter)
+		options._filterFunc = (typeof(options.filter) === 'function') ? options.filter : function(req) { return options.filter; };
+	else
+		options._filterFunc = function(req) { return {}; };
+
 	meanify.search = function search(req, res, next) {
 		// TODO: Use Model.schema.paths to check/cast types.
 		var fields = req.query;
@@ -144,7 +151,10 @@ function Meanify(Model, options) {
 				fields[field] = JSON.parse(value);
 			}
 		}
-
+		
+		// override with server-side filter field values
+		applyFilter(req,fields,options,Model);
+		
 		var query = Model.find(fields);
 
 		if (params.count) {
@@ -184,6 +194,9 @@ function Meanify(Model, options) {
 			return meanify.blank(req,res,null);
 		}
 		
+		// override data with server-side filter field values
+		applyFilter(req,req.body,options,Model);
+
 		Model.create(req.body, function (err, data) {
 			if (err) {
 				return res.status(400).send(err);
@@ -225,8 +238,10 @@ function Meanify(Model, options) {
 	};
 
 	meanify.update = function update(req, res, next) {
-		var id = req.params.id;
-		Model.findById(id, function (err, data) {
+		// override the _id selection with any other server-side filter field values
+		var fields = { '_id': req.params.id };
+		applyFilter(req,fields,options,Model);
+		Model.findOne(fields, function (err, data) {
 			if (err) {
 				debug('Update middleware Model.findById error:', err);
 				return next(err);
@@ -251,9 +266,11 @@ function Meanify(Model, options) {
 	// Instance Methods
 	function instanceMethod(method) {
 		return function (req, res, next) {
-			var id = req.params.id;
-			if (id) {
-				Model.findById(id, function (err, data) {
+			if (req.params.id) {
+				// override the _id selection with any other server-side filter field values
+				var fields = { '_id': req.params.id };
+				applyFilter(req,fields,options,Model);
+				Model.findOne(fields, function (err, data) {
 					if (err) {
 						debug('Method middleware Model.findById error:', err);
 						return next(err);
@@ -280,11 +297,13 @@ function Meanify(Model, options) {
 	}
 
 	meanify.delete = function del(req, res, next) {
-		var id = req.params.id;
-		if (id) {
-			Model.findByIdAndRemove(id, function (err, data) {
+		if (req.params.id) {
+			// override the _id selection with any other server-side filter field values
+			var fields = { '_id': req.params.id };
+			applyFilter(req,fields,options,Model);
+			Model.findOneAndRemove(fields, function (err, data) {
 				if (err) {
-					debug('Delete middleware Model.findByIdAndRemove error:', err);
+					debug('Delete middleware Model.findOneAndRemove error:', err);
 					return next(err);
 				}
 
@@ -341,9 +360,10 @@ function Meanify(Model, options) {
 			delete req.query.__populate;
 		}
 
-		var id = req.params.id;
-		if (id) {
-			Model.findById(id)
+		if (req.params.id) {
+			var fields = { '_id': req.params.id };
+			applyFilter(req,fields,options,Model);
+			Model.findOne(fields)
 				.populate(populate)
 				.exec(function (err, data) {
 				if (err) {
@@ -364,9 +384,10 @@ function Meanify(Model, options) {
 	function subdoc(field) {
 		return {
 			search: function (req, res, next) {
-				var id = req.params.id;
-				if (id) {
-					Model.findById(id, function (err, parent) {
+				if (req.params.id) {
+					var fields = { '_id': req.params.id };
+					applyFilter(req,fields,options,Model);
+					Model.findOne(fields, function (err, parent) {
 						if (err) {
 							debug('Sub-document search middleware (' + field + ') Model.findById error:', err);
 							return next(err);
@@ -384,9 +405,10 @@ function Meanify(Model, options) {
 				}
 			},
 			create: function (req, res, next) {
-				var id = req.params.id;
-				if (id) {
-					Model.findById(id, function (err, parent) {
+				if (req.params.id) {
+					var fields = { '_id': req.params.id };
+					applyFilter(req,fields,options,Model);
+					Model.findOne(fields, function (err, parent) {
 						if (err) {
 							debug('Sub-document create middleware (' + field + ') Model.findById error:', err);
 							return next(err);
@@ -409,10 +431,11 @@ function Meanify(Model, options) {
 				}
 			},
 			read: function (req, res, next) {
-				var id = req.params.id;
 				var subId = req.params[field + 'Id'];
-				if (id) {
-					Model.findById(id, function (err, parent) {
+				if (req.params.id) {
+					var fields = { '_id': req.params.id };
+					applyFilter(req,fields,options,Model);
+					Model.findOne(fields, function (err, parent) {
 						if (err) {
 							debug('Sub-document read middleware (' + field + ') Model.findById error:', err);
 							return next(err);
@@ -433,10 +456,11 @@ function Meanify(Model, options) {
 				}
 			},
 			update: function (req, res, next) {
-				var id = req.params.id;
 				var subId = req.params[field + 'Id'];
-				if (id) {
-					Model.findById(id, function (err, parent) {
+				if (req.params.id) {
+					var fields = { '_id': req.params.id };
+					applyFilter(req,fields,options,Model);
+					Model.findOne(fields, function (err, parent) {
 						if (err) {
 							debug('Sub-document update middleware (' + field + ') Model.findById error:', err);
 							return next(err);
@@ -466,10 +490,11 @@ function Meanify(Model, options) {
 				}
 			},
 			delete: function (req, res, next) {
-				var id = req.params.id;
 				var subId = req.params[field + 'Id'];
-				if (id) {
-					Model.findById(id, function (err, parent) {
+				if (req.params.id) {
+					var fields = { '_id': req.params.id };
+					applyFilter(req,fields,options,Model);
+					Model.findOne(fields, function (err, parent) {
 						if (err) {
 							debug('Sub-document delete middleware (' + field + ') Model.findById error:', err);
 							return next(err);
@@ -636,3 +661,11 @@ module.exports = function (options) {
 
 	return api;
 };
+
+// takes the filter defined in the options and applies those values to the fields array to enforce a server-side filter
+function applyFilter(req,fields,options,Model)
+{
+	var filter = options._filterFunc(req,Model);
+		for (var f in filter)
+			fields[f] = filter[f];
+}
