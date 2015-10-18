@@ -133,14 +133,16 @@ By default, ngResource does not support PUT for updates without [making it more 
 Experimental feature that automatically populates references on create and removes them on delete. Default: `false`
 
 ### filter
-Define pre-set field values that allow server-enforced filtering and access control.  These field values are applied to all requests and override any values supplied for these fields in the request.
-e.g. if the filter function returns { public: true } then
-SEARCH/READ: will only return resource(s) that have public = true 
-DELETE: will only work if the identified resource has public = true
-CREATE: will set public = true regardless of what data is posted
-UPDATE: will only update the identified resource if it has public = true
+Defines pre-set field values that allow server-enforced filtering and access control.  These field values are applied to all requests and override any values supplied for these fields in the request.
+e.g. if the filter is { public: true } then
+Method      | Effect of filter
+----------- | ----------------
+SEARCH/READ | will only return resource(s) that have public = true 
+DELETE      | will only work if the identified resource has public = true
+CREATE      | will set public = true regardless of what data is posted
+UPDATE      | will only update the identified resource if it has public = true
 
-public=true is a contrived example to make it easier to illustrate the mechanics.  The most likely real world usage is to supply a field value that identifies objects that the current user has access to, e.g.
+public=true is a contrived example to make it easier to illustrate the mechanics. The most likely real world usage is to supply a function returning a field value that identifies the objects that the current user has access to, e.g.
 ```
 var meanify = require('meanify')({
     filter: function(req,model) { 
@@ -148,9 +150,7 @@ var meanify = require('meanify')({
     },
 });
 ```
-In this case req.user is defined by the authentication framework (e.g. http://passportjs.org/docs/authenticate) and all models in the schema have an _owner field .
-
-To apply a filter only on certain models you can test model.modelName
+In this case req.user is defined by the authentication framework (e.g. http://passportjs.org/docs/authenticate) and all models in the schema have an _owner field.  To apply a filter only on certain models you can test model.modelName
 
 ## Usage
 
