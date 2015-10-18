@@ -4,11 +4,10 @@
 	✔︎ DELETE /items/{id}
 	✔︎ GET /items
 	✔︎ GET /items/{id}
-	✔︎ POST /items
+	✔︎ POST /items (blank body returns a blank record without writing to database)
 	✔︎ PUT /items (optional)
 	✔︎ PUT /items/{id}
 	✔︎ POST /items/{id} (optional)
-	✔︎ PROPFIND /items (returns a blank record with default values or null for each field - use to databind to Create forms)
 	TODO: https://github.com/mgonto/restangular
 */
 var debug = require('debug')('meanify');
@@ -180,7 +179,11 @@ function Meanify(Model, options) {
 	};
 
 	meanify.create = function create(req, res) {
-
+		// on empty post, return blank object 
+		if (Object.keys(req.body).length === 0) {
+			return meanify.blank(req,res,null);
+		}
+		
 		Model.create(req.body, function (err, data) {
 			if (err) {
 				return res.status(400).send(err);
@@ -581,8 +584,6 @@ module.exports = function (options) {
 			router.put(path, meanify.create);
 			debug('PUT    ' + path);
 		}
-		router.propfind(path, meanify.blank);
-		debug('PROPFIND    ' + path);
 		path += '/:id';
 		router.get(path, meanify.read);
 		debug('GET    ' + path);

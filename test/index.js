@@ -114,13 +114,13 @@ test('Search', function (test) {
   });
 });
 
-test('Propfind', function(test) {
+test('Blank', function(test) {
   test.plan(3);
-  request(url + 'posts', {method:'propfind'}, function (err, res) {
+  request(url + 'posts', {method:'post'}, function (err, res) {
     var blank = JSON.parse(res.body);
     test.equal(blank.type, 'article', 'Post.type has a default value');
     var diff = Date.now() - blank.createdAt;
-    test.ok(diff < 1000, "Date returned by propfind is less than 1 second ago " + blank.createdAt + " diff = " + diff);
+    test.ok(diff < 1000, "Date returned by blank is less than 1 second ago " + blank.createdAt + " diff = " + diff);
     test.equal(blank.title, null, "Title is null");
   })
 });
