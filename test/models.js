@@ -27,8 +27,8 @@ var postSchema = new Schema({
 	title: { type: String, required: true },
 	author: { type: Schema.Types.ObjectId, ref: 'User', index: true },
 	comments: [ commentSchema ],
-	type: String,
-	createdAt: Date
+	type: {type: String, default:'article'},
+	createdAt: {type: Date, default: Date.now}
 });
 
 postSchema.path('type').validate(function (value) {
@@ -59,3 +59,10 @@ var excludedSchema = new Schema({
 });
 
 mongoose.model('Excluded', excludedSchema);
+
+var filteredSchema = new Schema({
+	name: { type: String, required: true },
+	email: { type: String, required: true }
+});
+
+mongoose.model('Filtered', filteredSchema);
