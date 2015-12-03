@@ -151,6 +151,7 @@ Option   | Description
 -------- | -------------
 limit    | Limits the result set count to the supplied value.
 skip     | Number of records to skip (offset).
+distinct | Finds the distinct values for a specified field across the current collection.
 sort     | Sorts the record according to provided [shorthand sort syntax](http://mongoosejs.com/docs/api.html#query_Query-sort) (e.g. `&__sort=-name`).
 populate | Populates object references with the full resource (e.g. `&__populate=users`).
 count    | When present, returns the resulting count in an array (e.g. `[38]`).
@@ -293,7 +294,7 @@ Meanify will return a `400` with the error object passed by your middleware.
 [Instance methods](http://mongoosejs.com/docs/guide.html#methods) can also be defined on models in Mongoose and accessed via the meanify API routes.
 
 ```
-postSchema.method('mymethod', function (req, res, next) {
+postSchema.method('mymethod', function (req, res, done) {
 	var error = null;
 	var query = req.query;
 	var body = req.body;
@@ -301,23 +302,23 @@ postSchema.method('mymethod', function (req, res, next) {
 		// Do some stuff with query params.
 		body.foo = query.foo;
 		// Return new object in the response.
-		next(error, body);
+		done(error, body);
 	} else {
 		error = {
 			name: 'NoFoo',
 			message: 'Foo not found.'
 		};
 		// Send error.
-		next(error);
+		done(error);
 	}
 });
 ```
 
-Instance methods defined on schemas should expect three arguments: the `request` object, `response` object, and a callback.
+Instance methods defined on schemas should expect three arguments: the `request` object, `response` object, and a `done` callback.
 
-If the callback sees `null` as the first argument and the modified resource object second, a successful `200` response will be returned along with the object as the body. If the callback sees the error defined as the first argument, a failure (i.e. a `400`) response is returned.
+If the `done` callback sees `null` as the first argument and the modified resource object second, a successful `200` response will be returned along with the resource object as the body. If the callback sees the error defined as the first argument, a failure (i.e. a `400`) response is returned.
 
-The `response` object gives you more control over the response and status code sent. For example, you could send a `401` or `403` response status instead of the standard `400` available by using the callback.
+The `response` object gives you more control over the response and status code sent. For example, you could send a `401` or `403` response status (i.e. `res.status(401).send()`) instead of the standard `400` using the callback.
 
 Note that inside the schema method context, `this` refers to the resource document found in the database.
 

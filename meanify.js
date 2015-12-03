@@ -1,13 +1,23 @@
 /* jshint node: true */
 'use strict';
 /*
-	✔︎ DELETE /items/{id}
 	✔︎ GET /items
 	✔︎ GET /items/{id}
 	✔︎ POST /items
+	  POST /items/{method}
 	✔︎ PUT /items (optional)
 	✔︎ PUT /items/{id}
 	✔︎ POST /items/{id} (optional)
+	✔︎ DELETE /items/{id}
+	✔︎ POST /items/{id}/{method}
+	✔︎ GET /items/{id}/{subdocs}
+	✔︎ GET /items/{id}/{subdocs}/{id}
+	✔︎ POST /items/{subdocs}
+	✔︎ PUT /items/{subdocs} (optional)
+	✔︎ PUT /items/{id}/{subdocs}/{id}
+	✔︎ POST /items/{id}/{subdocs}/{id} (optional)
+	︎  POST /items/{id}/{subdocs}/{id}/{method}
+	✔︎ DELETE /items/{id}/{subdocument}/{id}
 
 	TODO: https://github.com/mgonto/restangular
 */
@@ -102,7 +112,7 @@ function Meanify(Model, options) {
 			fields.__count = true;
 		}
 
-		['count', 'populate', 'sort', 'skip', 'limit', 'near'].forEach(function (param) {
+		['count', 'populate', 'sort', 'skip', 'limit', 'near', 'distinct'].forEach(function (param) {
 			params[param] = fields['__' + param];
 			delete fields['__' + param];
 		});
@@ -162,6 +172,9 @@ function Meanify(Model, options) {
 			}
 			if (params.skip) {
 				query.skip(params.skip);
+			}
+			if (params.distinct) {
+				query.distinct(params.distinct);
 			}
 			if (params.sort) {
 				query.sort(params.sort);
@@ -248,6 +261,14 @@ function Meanify(Model, options) {
 	// Instance Methods
 	function instanceMethod(method) {
 		return function (req, res, next) {
+
+			var done = function (err, data) {
+				if (err) {
+					return res.status(400).send(err);
+				}
+				return res.send(data);
+			};
+
 			var id = req.params.id;
 			if (id) {
 				Model.findById(id, function (err, data) {
@@ -256,12 +277,8 @@ function Meanify(Model, options) {
 						return next(err);
 					}
 					if (data) {
-						data[method](req, res, function (err, data) {
-							if (err) {
-								return res.status(400).send(err);
-							}
-							return res.send(data);
-						});
+						// Expose next(), but do not document.
+						data[method](req, res, done, next);
 					} else {
 						return res.status(404).send();
 					}
