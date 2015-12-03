@@ -349,6 +349,9 @@ app.post('/api/posts/:id/mymethod', meanify.posts.update.mymethod);
 
 ## Changelog
 
+### 0.1.7 | 11/3/2015
+* Support for Mongo's [distinct aggregation command](https://docs.mongodb.org/manual/reference/command/distinct/) via the `__distinct` option.
+
 ### 0.1.6 | 12/31/2014
 * Instance method constructor supports `req`, `res`, `next` interface.
 
