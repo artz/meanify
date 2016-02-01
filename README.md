@@ -131,7 +131,7 @@ By default, ngResource does not support PUT for updates without [making it more 
 Experimental feature that automatically populates references on create and removes them on delete. Default: `false`
 
 ### hooks
-Object containing registration hooks for `search`, `create`, `read`, `update`, and `delete` operations.  [See below for full hooks documentation.](#hooks)
+Object containing registration hooks for `search`, `create`, `read`, `update`, and `delete` operations.  [See below for full hooks documentation.](#Hooks)
 
 ## Usage
 
@@ -292,7 +292,7 @@ commentSchema.pre('save', function (next) {
 }
 ```
 
-## <a name="hooks"></a>Hooks
+## <a name="Hooks"></a>Hooks
 
 Using hooks, you can access Express' `request`, `response` objects and `next` function for maximum control over the response to the client. This is especially useful for authorization.
 
