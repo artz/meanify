@@ -17,7 +17,20 @@ var meanify = require('../meanify')({
   path: '/api',
   pluralize: true,
   exclude: ['Excluded'],
-  jsonp: true
+  jsonp: true,
+  hooks: {
+    Post: {
+      read: function (req, res, done) {
+        if (req.query.hook) {
+          done({
+            name: 'HookError'
+          });
+        } else {
+          done();
+        }
+      }
+    }
+  }
 });
 app.use(meanify());
 
@@ -239,6 +252,93 @@ test('Sub-document Search', function (test) {
     test.equal(res.statusCode, 200, 'Successful search (200).');
     test.equal(comments.length, 0, 'Empty array returned. ' + JSON.stringify(comments));
   });
+});
+
+meanify.posts.hook('search', function (req, res, done) {
+  if (req.query.hook) {
+    done({
+      name: 'HookError'
+    });
+  } else {
+    done();
+  }
+});
+meanify.posts.hook('create', function (req, res, done) {
+  if (req.query.hook) {
+    done({
+      name: 'HookError'
+    });
+  } else {
+    done();
+  }
+});
+meanify.posts.hook('update', function (req, res, done) {
+  if (req.query.hook) {
+    done({
+      name: 'HookError'
+    });
+  } else {
+    done();
+  }
+});
+meanify.posts.hook('delete', function (req, res, done) {
+  if (req.query.hook) {
+    done({
+      name: 'HookError'
+    });
+  } else {
+    done();
+  }
+});
+
+test('Hooks', function (test) {
+  test.plan(10);
+
+  // Search
+  request.get({
+    url: url + 'posts?hook=true',
+    json: true
+  }, function (err, res) {
+    test.equal(res.statusCode, 400, 'Post `search` hook error received; status is 400.');
+    test.equal(res.body.name, 'HookError', 'Hook `search` error body received: ' +  res.body.name);
+  });
+
+  // Create
+ request.post({
+   url: url + 'posts?hook=true',
+   json: true
+ }, function (err, res) {
+   test.equal(res.statusCode, 400, 'Post `create` hook error received; status is 400.');
+   test.equal(res.body.name, 'HookError', 'Hook `create` error body received: ' +  res.body.name);
+  });
+
+  // Read
+  request.get({
+    url: url + 'posts/' + testPost._id + '?hook=true',
+    json: true
+  }, function (err, res) {
+    test.equal(res.statusCode, 400, 'Post `read` hook error received; status is 400.');
+    test.equal(res.body.name, 'HookError', 'Hook `read` error body received: ' +  res.body.name);
+  });
+
+  // Update
+  request.post({
+    url: url + 'posts/' + testPost._id + '?hook=true',
+    json: true
+  }, function (err, res) {
+    test.equal(res.statusCode, 400, 'Post `update` hook error received; status is 400.');
+    test.equal(res.body.name, 'HookError', 'Hook `update` error body received: ' +  res.body.name);
+  });
+
+  // Delete
+  request.del({
+    url: url + 'posts/' + testPost._id + '?hook=true',
+    json: true
+  }, function (err, res) {
+    test.equal(res.statusCode, 400, 'Post `delete` hook error received; status is 400.');
+    test.equal(res.body.name, 'HookError', 'Hook `delete` error body received: ' +  res.body.name);
+  });
+
 });
 
 test('Exit', function (test) {

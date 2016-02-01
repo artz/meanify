@@ -38,6 +38,13 @@ function Meanify(Model, options) {
 	var modelName = Model.modelName;
 	var meanify = this;
 
+	// Hooks for running code between various operations.
+	var hooks = options.hooks && options.hooks[modelName] || {};
+
+	meanify.hook = function (hookName, hookFunction) {
+		hooks[hookName] = hookFunction;
+	};
+
 	// Find geospatial index for geo queries.
 	// http://docs.mongodb.org/manual/reference/operator/query/nearSphere/
 	// https://github.com/LearnBoost/mongoose/wiki/3.6-Release-Notes#geojson-support-mongodb--24
@@ -187,51 +194,78 @@ function Meanify(Model, options) {
 					debug('Search middleware query error:', err);
 					return next(err);
 				}
-				return res.send(data);
+				function done(err) {
+					if (err) {
+						// Note: This error can only be sent from the hook.
+						return res.status(400).send(err);
+					} else {
+						res.send(data);
+					}
+				}
+				if (hooks.search) {
+					hooks.search.call(data, req, res, done, next);
+				} else {
+					done();
+				}
 			});
 		}
 	};
 
-	meanify.create = function create(req, res) {
-
-		Model.create(req.body, function (err, data) {
+	meanify.create = function create(req, res, next) {
+		var model = new Model(req.body);
+		function done(err) {
 			if (err) {
+				// Note: This error can only be sent from the hook.
 				return res.status(400).send(err);
 			}
+			model.save(function createSave(err, data) {
+				if (err) {
+					// Send validation error from Mongoose.
+					return res.status(400).send(err);
+				}
 
-			// Populate relationships.
-			if (options.relate) {
-				// TODO: Finish relationships before sending response.
-				relationships.forEach(function (relation) {
+				// Populate relationships.
+				if (options.relate) {
+					// TODO: Finish relationships before sending response.
+					relationships.forEach(function (relation) {
 
-					var referenceId = data[relation.property];
-					// Normalize to array.
-					if (!Array.isArray(referenceId)) {
-						referenceId = [ referenceId ];
-					}
+						var referenceId = data[relation.property];
+						// Normalize to array.
+						if (!Array.isArray(referenceId)) {
+							referenceId = [ referenceId ];
+						}
 
-					referenceId.forEach(function (id) {
-						var update = {};
-						update[relation.relatedProperty] = data._id;
-						relation.relatedModel.findByIdAndUpdate(id,
-							relation.isArray ? { $addToSet: update } : update,
-							function (err, data) {
-								if (err) {
-									debug('Relationship error:', err);
-									debug('Failed to relate:',
-										relation.relatedModel.modelName,
-										relation.relatedProperty);
+						referenceId.forEach(function (id) {
+							var update = {};
+							update[relation.relatedProperty] = data._id;
+							// Note: Model.findByIdAndUpdate does not fire Mongoose hooks.
+							relation.relatedModel.findByIdAndUpdate(id,
+								relation.isArray ? { $addToSet: update } : update,
+								function (err, data) {
+									if (err) {
+										debug('Relationship error:', err);
+										debug('Failed to relate:',
+											relation.relatedModel.modelName,
+											relation.relatedProperty);
+									}
+									debug('Relationship success:', data);
 								}
-								debug('Relationship success:', data);
-							}
-						);
+							);
+						});
+
 					});
+				}
 
-				});
-			}
+				return res.status(201).send(data);
+			});
+		}
 
-			return res.status(201).send(data);
-		});
+		if (hooks.create) {
+			hooks.create.call(model, req, res, done, next);
+		} else {
+			done();
+		}
+
 	};
 
 	meanify.update = function update(req, res, next) {
@@ -241,17 +275,32 @@ function Meanify(Model, options) {
 				debug('Update middleware Model.findById error:', err);
 				return next(err);
 			}
+
+			function done(err) {
+				if (err) {
+					// Note: This error can only be sent from the hook.
+					return res.status(400).send(err);
+				}
+				data.save(function updateSave(err) {
+					if (err) {
+						// Send validation error from Mongoose.
+						res.status(400).send(err);
+					} else {
+						res.status(204).send();
+					}
+				});
+			}
+
 			if (data) {
 				// Update using simple extend.
 				for (var property in req.body) {
 					data[property] = req.body[property];
 				}
-				data.save(function (err) {
-					if (err) {
-						return res.status(400).send(err);
-					}
-					return res.status(204).send();
-				});
+				if (hooks.update) {
+					hooks.update.call(data, req, res, done, next);
+				} else {
+					done();
+				}
 			} else {
 				return res.status(404).send();
 			}
@@ -277,7 +326,6 @@ function Meanify(Model, options) {
 						return next(err);
 					}
 					if (data) {
-						// Expose next(), but do not document.
 						data[method](req, res, done, next);
 					} else {
 						return res.status(404).send();
@@ -296,48 +344,62 @@ function Meanify(Model, options) {
 	meanify.delete = function del(req, res, next) {
 		var id = req.params.id;
 		if (id) {
-			Model.findByIdAndRemove(id, function (err, data) {
+			Model.findById(id, function (err, data) {
 				if (err) {
-					debug('Delete middleware Model.findByIdAndRemove error:', err);
+					debug('Delete middleware Model.findById error:', err);
 					return next(err);
 				}
-
-				// Remove relationships.
-				if (options.relate && data) {
-					debug('Deleting:', data);
-					// TODO: Finish deleting relationships before sending response.
-					relationships.forEach(function (relation) {
-
-						var referenceId = data[relation.property];
-						// Normalize to array.
-						if (!Array.isArray(referenceId)) {
-							referenceId = [ referenceId ];
+				function done(err) {
+					if (err) {
+						// Note: This error can only be sent from the hook.
+						return res.status(400).send(err);
+					}
+					data.remove(function deleteRemove(err, data) {
+						if (err) {
+							debug('Delete middleware data.remove error:', err);
+							return res.status(400).send(err);
+						}
+						// Remove relationships.
+						if (options.relate && data) {
+							debug('Removing relationships for: ', data);
+							// TODO: Finish deleting relationships before sending response.
+							relationships.forEach(function (relation) {
+								var referenceId = data[relation.property];
+								// Normalize to array.
+								if (!Array.isArray(referenceId)) {
+									referenceId = [ referenceId ];
+								}
+								referenceId.forEach(function (id) {
+									var update = {};
+									update[relation.relatedProperty] = data._id;
+									relation.relatedModel.findByIdAndUpdate(id,
+										relation.isArray ? { $pull: update } : { $unset: update },
+										function (err, data) {
+											if (err) {
+												debug('Relationship delete error:', err);
+												debug('Failed to delete relation:',
+													relation.relatedModel.modelName + '.' +
+													relation.relatedProperty);
+											}
+											debug('Relationship delete success:', data);
+										}
+									);
+								});
+							});
 						}
 
-						referenceId.forEach(function (id) {
-							var update = {};
-							update[relation.relatedProperty] = data._id;
-							relation.relatedModel.findByIdAndUpdate(id,
-								relation.isArray ? { $pull: update } : { $unset: update },
-								function (err, data) {
-									if (err) {
-										debug('Relationship delete error:', err);
-										debug('Failed to delete relation:',
-											relation.relatedModel.modelName + '.' +
-											relation.relatedProperty);
-									}
-									debug('Relationship delete success:', data);
-								}
-							);
-						});
-
+						if (data) {
+							return res.status(204).send();
+						} else {
+							return res.status(404).send();
+						}
 					});
 				}
 
-				if (data) {
-					return res.status(204).send();
+				if (hooks.delete) {
+					hooks.delete.call(data, req, res, done, next);
 				} else {
-					return res.status(404).send();
+					done();
 				}
 
 			});
@@ -364,14 +426,26 @@ function Meanify(Model, options) {
 					debug('Read middleware Model.findById error:', err);
 					return next(err);
 				}
+				function done(err) {
+					if (err) {
+						// Note: This error can only be sent from the hook.
+						res.status(400).send(err);
+					} else {
+						res.send(data);
+					}
+				}
 				if (data) {
-					return res.send(data);
+					if (hooks.read) {
+						hooks.read.call(data, req, res, done, next);
+					} else {
+						done();
+					}
 				} else {
-					return res.status(404).send();
+					res.status(404).send();
 				}
 			});
 		} else {
-			return res.status(404).send();
+			res.status(404).send();
 		}
 	};
 
@@ -408,8 +482,9 @@ function Meanify(Model, options) {
 						if (parent) {
 							var index = parent[field].push(req.body) - 1;
 							var child = parent[field][index];
-							parent.save(function (err) {
+							parent.save(function subCreateSave(err) {
 								if (err) {
+									// Send validation error from Mongoose.
 									return res.status(400).send(err);
 								}
 								return res.status(201).send(child);
@@ -462,8 +537,9 @@ function Meanify(Model, options) {
 								for (var property in req.body) {
 									child[property] = req.body[property];
 								}
-								parent.save(function (err) {
+								parent.save(function subUpdateSave(err) {
 									if (err) {
+										// Send validation error from Mongoose.
 										return res.status(400).send(err);
 									}
 									return res.status(200).send(child);
@@ -489,9 +565,11 @@ function Meanify(Model, options) {
 							return next(err);
 						}
 						if (parent) {
+							// TODO: Add remove hook for sub docs.
 							parent[field].id(subId).remove();
-							parent.save(function (err) {
+							parent.save(function subDeleteSave(err) {
 								if (err) {
+									// Send validation error from Mongoose.
 									return res.status(400).send(err);
 								}
 								return res.status(204).send();
